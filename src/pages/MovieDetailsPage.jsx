@@ -6,6 +6,10 @@ function MovieDetailsPage() {
   const navigate = useNavigate();
   const { data: movies = [], isLoading, error } = useMovies();
 
+  const handleBackToHome = () => {
+    navigate("/");
+  };
+
   const movie = movies.find((m) => m.id === movieId);
 
   if (isLoading) {
@@ -33,7 +37,7 @@ function MovieDetailsPage() {
   }
 
   const handleBookShow = () => {
-    navigate(`/movie/${movieId}/shows`);
+    navigate(`/movie/${movieId}/theaters`);
   };
 
   const getYouTubeEmbedUrl = (url) => {
@@ -48,6 +52,16 @@ function MovieDetailsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
+      {/* Header with Back Button */}
+      <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+        <button
+          onClick={handleBackToHome}
+          className="text-red-500 hover:text-red-400 font-semibold mb-3 sm:mb-4 text-sm sm:text-base"
+        >
+          ← Back
+        </button>
+      </div>
+
       {/* Banner */}
       <div className="relative h-48 sm:h-72 md:h-96 overflow-hidden">
         <img

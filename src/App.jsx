@@ -3,8 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import HomePage from "./pages/HomePage";
 import MovieDetailsPage from "./pages/MovieDetailsPage";
-import TheaterShowsPage from "./pages/TheaterShowsPage";
+import TheaterSelectionPage from "./pages/TheaterSelectionPage";
+import SelectedTheaterShowsPage from "./pages/SelectedTheaterShowsPage";
 import SeatSelectionPage from "./pages/SeatSelectionPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,13 +33,28 @@ function App() {
           />
 
           <Route
-            path="/movie/:movieId/shows"
-            element={<TheaterShowsPage />}
+            path="/movie/:movieId/theaters"
+            element={<TheaterSelectionPage />}
+          />
+
+          <Route
+            path="/movie/:movieId/theater/:theaterId/shows"
+            element={<SelectedTheaterShowsPage />}
           />
 
           <Route
             path="/show/:showId/seats"
             element={<SeatSelectionPage />}
+          />
+
+          <Route
+            path="/login"
+            element={<LoginPage />}
+          />
+
+          <Route
+            path="/register"
+            element={<RegisterPage />}
           />
         </Routes>
       </BrowserRouter>

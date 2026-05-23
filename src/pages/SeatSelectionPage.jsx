@@ -2,18 +2,22 @@ import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useShowSeats } from "../utils/useShowSeats";
 import SvgSeatingLayout from "../components/SvgSeatingLayout";
+import authStore from "../store/authStore";
+import { lockSeats, createBooking, completeBooking } from "../api/bookingApi";
 
 function SeatSelectionPage() {
   const { showId } = useParams();
   const navigate = useNavigate();
   const [selectedSeats, setSelectedSeats] = useState([]);
-  
+  const [isLocking, setIsLocking] = useState(false);
+  const [lockError, setLockError] = useState("");
+  const { isAuthenticated } = authStore();
+
   const { data: seats = [], isLoading, error } = useShowSeats(showId);
 
   // Calculate total price (assuming ₹200 per seat, or use seat.price if available)
   const totalPrice = useMemo(() => {
     return selectedSeats.reduce((sum, seat) => {
-      // Assume standard price if not available on seat object
       return sum + 200;
     }, 0);
   }, [selectedSeats]);
@@ -27,21 +31,69 @@ function SeatSelectionPage() {
   };
 
   const handleBooking = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
     if (selectedSeats.length === 0) {
       alert("Please select at least one seat");
       return;
     }
 
-    // Format selected seat IDs
-    const seatIds = selectedSeats.map((s) => s.id);
-    const seatLabels = selectedSeats.map((s) => s.seat_label).sort().join(", ");
+    setIsLocking(true);
+    setLockError("");
 
-    // Here you would call the lock seats API
-    console.log(`Booking seats: ${seatLabels}`, seatIds);
-    
-    alert(
-      `Booking confirmed for seats: ${seatLabels}\nTotal: ₹${totalPrice}`
-    );
+    try {
+      // Lock the seats first
+      const seatIds = selectedSeats.map((s) => s.id);
+      const lockResponse = await lockSeats(showId, seatIds);
+      console.log("Seats locked:", lockResponse);
+
+      // Create booking
+      const bookingResponse = await createBooking(showId, seatIds);
+      console.log("Booking created:", bookingResponse);
+
+      // Initialize Razorpay payment
+      initiateRazorpayPayment(bookingResponse, seatIds);
+    } catch (err) {
+      setLockError(
+        err.response?.data?.message || "Failed to lock seats. Please try again."
+      );
+      setIsLocking(false);
+    }
+  };
+
+  const initiateRazorpayPayment = (bookingResponse, seatIds) => {
+    const options = {
+      key: "rzp_test_LcrnvN0lkNSWgv",
+      amount: totalPrice * 100, // Amount in paise
+      currency: "INR",
+      order_id: bookingResponse.booking_id,
+      name: "BookMyShow",
+      description: `Booking for ${selectedSeats.length} seat(s)`,
+      handler: async (response) => {
+        try {
+          // Complete the booking after successful payment
+          await completeBooking(bookingResponse.booking_id, seatIds);
+          alert("Booking confirmed! Payment successful.");
+          navigate("/");
+        } catch (err) {
+          alert("Booking confirmation failed: " + (err.response?.data?.message || err.message));
+          navigate("/");
+        }
+      },
+      prefill: {
+        name: "Customer",
+        email: "customer@example.com",
+      },
+      theme: {
+        color: "#ef4444",
+      },
+    };
+
+    const razorpay = new window.Razorpay(options);
+    razorpay.open();
   };
 
   if (isLoading) {
@@ -138,6 +190,20 @@ function SeatSelectionPage() {
               Booking Summary
             </h2>
 
+            {/* Authentication Warning */}
+            {!isAuthenticated && (
+              <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 text-yellow-300 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                Please log in to continue booking
+              </div>
+            )}
+
+            {/* Lock Error */}
+            {lockError && (
+              <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-300 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                {lockError}
+              </div>
+            )}
+
             {/* Selected Seats */}
             <div className="mb-4">
               <p className="text-xs sm:text-sm text-gray-400 mb-2">
@@ -182,21 +248,21 @@ function SeatSelectionPage() {
             {/* Booking Button */}
             <button
               onClick={handleBooking}
-              disabled={selectedSeats.length === 0}
+              disabled={selectedSeats.length === 0 || isLocking}
               className={`
                 w-full py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition
-                ${
-                  selectedSeats.length > 0
-                    ? "bg-red-500 hover:bg-red-600 text-white cursor-pointer"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                ${selectedSeats.length > 0 && !isLocking
+                  ? "bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
                 }
               `}
             >
-              {selectedSeats.length > 0
-                ? `Proceed to Pay (${selectedSeats.length} seat${
-                    selectedSeats.length > 1 ? "s" : ""
+              {isLocking
+                ? "Processing..."
+                : selectedSeats.length > 0
+                  ? `Proceed to Pay (${selectedSeats.length} seat${selectedSeats.length > 1 ? "s" : ""
                   })`
-                : "Select Seats to Continue"}
+                  : "Select Seats to Continue"}
             </button>
 
             {/* Info Text */}
