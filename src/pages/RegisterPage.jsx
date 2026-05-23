@@ -5,7 +5,7 @@ import authStore from "../store/authStore";
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const { setUser, setToken } = authStore();
+  const { setUser } = authStore();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -50,7 +50,6 @@ function RegisterPage() {
         password: formData.password,
       });
       setUser(response.user);
-      setToken(response.token);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Please try again.");

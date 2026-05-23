@@ -15,5 +15,16 @@ export const loginUser = async (credentials) => {
     email: credentials.email,
     password: credentials.password,
   });
+  // Token is set as HttpOnly cookie automatically
+  return response.data;
+};
+
+export const getMe = async () => {
+  const response = await api.get("/me");
+  return response.data;
+};
+
+export const logoutUser = async () => {
+  const response = await api.post("/logout");
   return response.data;
 };

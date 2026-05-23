@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginUser } from "../api/authApi";
+import { loginUser, getMe } from "../api/authApi";
 import authStore from "../store/authStore";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { setUser, setToken } = authStore();
+  const { setUser, isAuthenticated } = authStore();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect to home if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,9 +39,10 @@ function LoginPage() {
 
     setIsLoading(true);
     try {
-      const response = await loginUser(formData);
-      setUser(response.user);
-      setToken(response.token);
+      await loginUser(formData);
+      // Fetch user info after successful login
+      const userResponse = await getMe();
+      setUser(userResponse.user);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");

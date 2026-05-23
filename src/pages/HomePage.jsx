@@ -2,13 +2,19 @@ import { useNavigate } from "react-router-dom";
 import MovieCard from "../components/MovieCard";
 import { useMovies } from "../utils/useMovies";
 import authStore from "../store/authStore";
+import { logoutUser } from "../api/authApi";
 
 function HomePage() {
   const navigate = useNavigate();
   const { data: movies = [], isLoading, error } = useMovies();
   const { isAuthenticated, user, logout } = authStore();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     logout();
   };
 
