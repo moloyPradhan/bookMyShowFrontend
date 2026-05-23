@@ -42,7 +42,9 @@ function LoginPage() {
       await loginUser(formData);
       // Fetch user info after successful login
       const userResponse = await getMe();
-      setUser(userResponse.user);
+
+      // console.log(userResponse);
+      setUser(userResponse.data);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
