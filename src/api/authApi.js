@@ -20,7 +20,7 @@ export const loginUser = async (credentials) => {
 };
 
 export const getMe = async () => {
-  const response = await api.get("/me");
+  const response = await api.get("/profile");
   return response.data;
 };
 

@@ -52,25 +52,29 @@ function MovieDetailsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white">
-      {/* Header with Back Button */}
-      <div className="px-4 sm:px-6 pt-4 sm:pt-6">
+
+      {/* Banner */}
+      <div className="relative h-48 sm:h-72 md:h-96 overflow-hidden">
+
+        {movie.banner_url && (
+          <img
+            src={movie.banner_url}
+            alt={movie.title}
+            className="w-full h-full object-cover"
+          />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-900"></div>
+
         <button
           onClick={handleBackToHome}
-          className="text-red-500 hover:text-red-400 font-semibold mb-3 sm:mb-4 text-sm sm:text-base"
+          className="absolute top-4 left-4 z-10 px-3 py-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition"
         >
           ← Back
         </button>
       </div>
 
-      {/* Banner */}
-      <div className="relative h-48 sm:h-72 md:h-96 overflow-hidden">
-        <img
-          src={movie.banner_url}
-          alt={movie.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-900"></div>
-      </div>
+
 
       <div className="px-4 sm:px-6 pb-8 sm:pb-10">
         {/* Movie Info Section */}
