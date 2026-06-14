@@ -1,14 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { fetchBookings } from "../api/bookingApi";
 import SkeletonLoader from "../components/SkeletonLoader";
 import MainLayout from "../layouts/MainLayout";
+import authStore from "../store/authStore";
 
 function BookingListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated } = authStore();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location.pathname } });
+    }
+  }, [isAuthenticated, navigate, location.pathname]);
+
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchBookings,
+    enabled: isAuthenticated,
   });
 
   const bookings = response?.data || [];

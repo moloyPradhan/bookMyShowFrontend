@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
@@ -6,19 +6,29 @@ import SkeletonLoader from "../components/SkeletonLoader";
 import { fetchBookingDetails, cancelBooking } from "../api/bookingApi";
 import MainLayout from "../layouts/MainLayout";
 import toastStore from "../store/toastStore";
+import authStore from "../store/authStore";
 
 function BookingDetailsPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const qrCanvasRef = useRef(null);
   const queryClient = useQueryClient();
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
   const { showToast, showConfirm } = toastStore();
+  const { isAuthenticated } = authStore();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location.pathname } });
+    }
+  }, [isAuthenticated, navigate, location.pathname]);
 
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["booking", bookingId],
     queryFn: () => fetchBookingDetails(bookingId),
+    enabled: isAuthenticated,
   });
 
   const booking = response?.data || null;

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useShowSeats } from "../utils/useShowSeats";
 import SkeletonLoader from "../components/SkeletonLoader";
 import SvgSeatingLayout from "../components/SvgSeatingLayout";
@@ -13,10 +13,11 @@ import { socket } from "../socket";
 function SeatSelectionPage() {
   const { showId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [isLocking, setIsLocking] = useState(false);
   const [lockError, setLockError] = useState("");
-  const { isAuthenticated } = authStore();
+  const { isAuthenticated, user } = authStore();
   const { showToast } = toastStore();
 
   // const { data: seats = [], isLoading, error } = useShowSeats(showId);
@@ -25,8 +26,26 @@ function SeatSelectionPage() {
   const [seats, setSeats] = useState([]);
 
   useEffect(() => {
+    if (fetchedSeats && fetchedSeats.length > 0 && user) {
+      const myLockedSeats = fetchedSeats.filter(
+        (seat) =>
+          seat.status === "locked" &&
+          (seat.locked_by === user.id || seat.locked_by === user._id)
+      );
+      if (myLockedSeats.length > 0) {
+        setSelectedSeats((current) => {
+          const merged = [...current];
+          myLockedSeats.forEach((seat) => {
+            if (!merged.some((s) => s.id === seat.id)) {
+              merged.push(seat);
+            }
+          });
+          return merged;
+        });
+      }
+    }
     setSeats(fetchedSeats);
-  }, [fetchedSeats]);
+  }, [fetchedSeats, user]);
 
   useEffect(() => {
     if (!showId) return;
@@ -46,17 +65,21 @@ function SeatSelectionPage() {
             ? {
               ...seat,
               status: data.status,
+              locked_by: data.status === "locked" ? data.locked_by : seat.locked_by,
             }
             : seat
         )
       );
 
       if (data.status === "locked") {
-        setSelectedSeats((currentSelected) =>
-          currentSelected.filter(
-            (seat) => !data.seat_ids.includes(seat.id)
-          )
-        );
+        const isLockedByMe = user && (data.locked_by === user.id || data.locked_by === user._id);
+        if (!isLockedByMe) {
+          setSelectedSeats((currentSelected) =>
+            currentSelected.filter(
+              (seat) => !data.seat_ids.includes(seat.id)
+            )
+          );
+        }
       }
     };
 
@@ -65,7 +88,7 @@ function SeatSelectionPage() {
     return () => {
       socket.off("seat-update", handleSeatUpdate);
     };
-  }, [showId]);
+  }, [showId, user]);
 
   const totalPrice = useMemo(() => {
     return selectedSeats.reduce((sum) => sum + 200, 0);
@@ -96,7 +119,7 @@ function SeatSelectionPage() {
 
   const handleBooking = async () => {
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/login", { state: { from: location.pathname } });
       return;
     }
 
@@ -169,6 +192,8 @@ function SeatSelectionPage() {
       modal: {
         ondismiss: () => {
           console.log("Payment popup closed");
+          setIsLocking(false);
+          showToast("Payment cancelled. You can try paying again.", "warning");
         },
       },
     };
@@ -265,11 +290,14 @@ function SeatSelectionPage() {
           <div>
             <button
               onClick={() => navigate(-1)}
-              className="text-red-400 hover:text-red-300 active:text-red-500 font-semibold mb-3 text-sm sm:text-base transition-colors"
+              className="inline-flex items-center gap-2 text-zinc-400 hover:text-white bg-zinc-800/40 hover:bg-zinc-800 border border-zinc-700/40 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 shadow-md cursor-pointer"
             >
-              &lt;- Back
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Back</span>
             </button>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-2 mt-3">
               Select Seats
             </h1>
             <p className="text-sm text-gray-400">
@@ -278,21 +306,21 @@ function SeatSelectionPage() {
             </p>
           </div>
 
-          <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-gray-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+          <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Rs. 200 per seat
           </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5 sm:gap-6 md:gap-8">
           <section className="min-w-0">
-            <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-3 sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-700 pb-4">
+            <div className="bg-zinc-900/60 backdrop-blur-md border border-zinc-800/80 rounded-2xl p-4 sm:p-6 shadow-2xl">
+              <div className="mb-6 flex items-center justify-between gap-3 border-b border-zinc-800/80 pb-4">
                 <div>
-                  <p className="text-sm font-semibold">Seat Map</p>
-                  <p className="text-xs text-gray-500">Screen is at the top</p>
+                  <p className="text-sm font-bold text-zinc-100">Seat Map</p>
+                  <p className="text-xs text-zinc-500">Screen is at the top</p>
                 </div>
-                <span className="rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-gray-300">
+                <span className="rounded-lg bg-zinc-800 border border-zinc-700/50 px-3 py-1 text-xs font-bold text-zinc-300">
                   {selectedSeats.length} selected
                 </span>
               </div>
@@ -302,69 +330,70 @@ function SeatSelectionPage() {
                 selectedSeats={selectedSeats}
                 onSeatSelect={handleSeatSelect}
                 onSeatDeselect={handleSeatDeselect}
+                user={user}
               />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 sm:mt-5">
               {[
-                ["Available", "bg-green-500"],
-                ["Selected", "bg-blue-500"],
+                ["Available", "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]"],
+                ["Selected", "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]"],
                 ["Booked", "bg-red-500 opacity-60"],
                 ["Locked", "bg-amber-500 opacity-60"],
               ].map(([label, colorClass]) => (
                 <div
                   key={label}
-                  className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs sm:text-sm text-gray-300"
+                  className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3.5 py-2.5 text-xs sm:text-sm text-zinc-300 backdrop-blur-sm"
                 >
                   <span className={`h-4 w-4 rounded ${colorClass}`}></span>
-                  <span>{label}</span>
+                  <span className="font-medium">{label}</span>
                 </div>
               ))}
             </div>
           </section>
 
           <aside>
-            <div className="bg-zinc-800 border border-zinc-700 p-4 sm:p-6 rounded-lg sticky top-4 shadow-xl">
-              <div className="mb-5">
-                <p className="text-xs uppercase tracking-wide text-gray-500">
+            <div className="bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/80 p-6 sm:p-8 rounded-2xl sticky top-6 shadow-2xl">
+              <div className="mb-6">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">
                   Checkout
                 </p>
-                <h2 className="text-lg sm:text-xl font-bold">
+                <h2 className="text-lg sm:text-xl font-extrabold text-zinc-100">
                   Booking Summary
                 </h2>
               </div>
 
               {!isAuthenticated && (
-                <div className="bg-yellow-500/10 border border-yellow-500/60 text-yellow-200 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 p-3.5 rounded-xl mb-4 text-xs sm:text-sm font-medium">
                   Please log in to continue booking
                 </div>
               )}
 
               {lockError && (
-                <div className="bg-red-500/10 border border-red-500/60 text-red-200 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 text-red-300 p-3.5 rounded-xl mb-4 text-xs sm:text-sm font-medium">
                   {lockError}
                 </div>
               )}
 
-              <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-400 mb-2 flex items-center justify-between">
+              <div className="mb-5">
+                <p className="text-xs sm:text-sm text-zinc-400 mb-2 flex items-center justify-between font-medium">
                   <span>Selected Seats</span>
-                  <span>{selectedSeats.length}</span>
+                  <span className="font-bold text-zinc-200">{selectedSeats.length}</span>
                 </p>
-                <div className="bg-zinc-900 border border-zinc-700 p-3 rounded-lg min-h-16 break-words">
+                <div className="bg-zinc-950/80 border border-zinc-850 p-4 rounded-xl min-h-16 break-words shadow-inner">
                   {selectedSeats.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {sortedSeatLabels.map((label) => (
                         <span
                           key={label}
-                          className="rounded-md bg-blue-500 px-2 py-1 text-xs font-semibold text-white"
+                          className="rounded-lg bg-blue-500/10 border border-blue-500/25 px-2.5 py-1 text-xs font-bold text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.05)]"
                         >
                           {label}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs sm:text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-zinc-600">
                       No seats selected
                     </p>
                   )}
@@ -372,17 +401,17 @@ function SeatSelectionPage() {
               </div>
 
               {selectedSeats.length > 0 && (
-                <div className="space-y-3 mb-4 pb-4 border-b border-zinc-700">
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-gray-400">{seatCountLabel}</span>
+                <div className="space-y-3.5 mb-5 pb-5 border-b border-zinc-800">
+                  <div className="flex justify-between text-xs sm:text-sm text-zinc-400 font-medium">
+                    <span>{seatCountLabel}</span>
                     <span>Rs. {selectedSeats.length * 200}</span>
                   </div>
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-gray-400">Convenience Fee</span>
+                  <div className="flex justify-between text-xs sm:text-sm text-zinc-400 font-medium">
+                    <span>Convenience Fee</span>
                     <span>Rs. 0</span>
                   </div>
-                  <div className="flex justify-between text-lg sm:text-xl font-bold bg-zinc-900 border border-zinc-700 p-3 rounded-lg">
-                    <span>Total:</span>
+                  <div className="flex justify-between text-lg sm:text-xl font-extrabold bg-zinc-950/60 border border-zinc-850 p-4 rounded-xl shadow-inner">
+                    <span className="text-zinc-200">Total:</span>
                     <span className="text-green-400">Rs. {totalPrice}</span>
                   </div>
                 </div>
@@ -392,10 +421,10 @@ function SeatSelectionPage() {
                 onClick={handleBooking}
                 disabled={selectedSeats.length === 0 || isLocking}
                 className={`
-                  w-full py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition
+                  w-full py-3.5 sm:py-4 rounded-xl font-extrabold text-sm sm:text-base transition-all duration-200 active:scale-[0.98]
                   ${selectedSeats.length > 0 && !isLocking
-                    ? "bg-red-500 hover:bg-red-600 active:bg-red-700 text-white cursor-pointer shadow-lg shadow-red-950/30"
-                    : "bg-zinc-700 text-gray-400 cursor-not-allowed"
+                    ? "bg-red-500 hover:bg-red-655 text-white cursor-pointer shadow-lg shadow-red-950/40 hover:shadow-red-500/20"
+                    : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/30"
                   }
                 `}
               >
@@ -406,7 +435,7 @@ function SeatSelectionPage() {
                     : "Select Seats to Continue"}
               </button>
 
-              <p className="text-xs text-gray-500 mt-4 text-center">
+              <p className="text-[10px] text-zinc-500 mt-4.5 text-center leading-relaxed">
                 Seats will be locked for 10 minutes after selection
               </p>
             </div>

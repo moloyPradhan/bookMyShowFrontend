@@ -4,12 +4,12 @@ const SvgSeat = ({
   seat,
   size,
   isSelected,
-  isLocked,
+  isClickable,
   onSelect,
   fontSize,
 }) => {
   const handleClick = () => {
-    if (!isLocked && seat.status === 'available') {
+    if (isClickable) {
       onSelect(seat);
     }
   };
@@ -18,8 +18,6 @@ const SvgSeat = ({
   if (isSelected) {
     fillColor = '#3b82f6'; // blue-500
   }
-
-  const isClickable = seat.status === 'available' && !isLocked;
 
   return (
     <g onClick={handleClick} style={{ cursor: isClickable ? 'pointer' : 'not-allowed' }}>
@@ -30,7 +28,7 @@ const SvgSeat = ({
         height={size}
         rx="4"
         fill={fillColor}
-        opacity={seat.status === 'available' ? 1 : 0.6}
+        opacity={seat.status === 'available' || isSelected ? 1 : 0.6}
         style={{
           transition: 'all 0.2s ease',
         }}

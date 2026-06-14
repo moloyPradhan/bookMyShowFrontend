@@ -2,7 +2,7 @@ import { useMemo, useEffect, useState } from 'react';
 import SvgSeat from './SvgSeat';
 import { organizeSeatsByRows, getResponsiveDimensions } from '../utils/seatUtils';
 
-const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect }) => {
+const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect, user }) => {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -25,7 +25,8 @@ const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect }
   const svgHeight = rows.length * dimensions.seatSize + (rows.length - 1) * dimensions.rowGap + dimensions.padding * 3 + 40;
 
   const handleSeatClick = (seat) => {
-    if (seat.status !== 'available') return;
+    const isLockedByMe = seat.status === 'locked' && user && (seat.locked_by === user.id || seat.locked_by === user._id);
+    if (seat.status !== 'available' && !isLockedByMe) return;
 
     const isSelected = selectedSeats.some((s) => s.id === seat.id);
     if (isSelected) {
@@ -41,33 +42,38 @@ const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect }
         width={Math.min(svgWidth, screenWidth - 32)}
         height={svgHeight}
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="border border-gray-700 rounded-lg bg-zinc-800"
+        className="border border-zinc-800/80 rounded-2xl bg-zinc-950/45 backdrop-blur-md shadow-inner"
       >
-        {/* Screen */}
-        <rect
-          x={dimensions.padding}
-          y={dimensions.padding}
-          width={svgWidth - dimensions.padding * 2}
-          height="30"
-          fill="url(#screenGradient)"
-          rx="4"
-        />
         <defs>
-          <linearGradient id="screenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#6b7280" />
-            <stop offset="100%" stopColor="#4b5563" />
+          <linearGradient id="screenNeonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#1e3a8a" stopOpacity="0.15" />
+            <stop offset="15%" stopColor="#3b82f6" stopOpacity="0.9" />
+            <stop offset="50%" stopColor="#60a5fa" stopOpacity="1" />
+            <stop offset="85%" stopColor="#3b82f6" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.15" />
           </linearGradient>
         </defs>
+
+        {/* Screen curved line */}
+        <path
+          d={`M ${dimensions.padding + 20} ${dimensions.padding + 15} Q ${svgWidth / 2} ${dimensions.padding} ${svgWidth - dimensions.padding - 20} ${dimensions.padding + 15}`}
+          fill="none"
+          stroke="url(#screenNeonGradient)"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
+
         <text
           x={svgWidth / 2}
-          y={dimensions.padding + 20}
+          y={dimensions.padding + 35}
           textAnchor="middle"
           fontSize={dimensions.fontSize}
-          fill="white"
+          fill="#9ca3af"
           fontWeight="bold"
+          letterSpacing="4"
           pointerEvents="none"
         >
-          SCREEN
+          🎬 SCREEN
         </text>
 
         {/* Seats */}
@@ -81,11 +87,24 @@ const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect }
 
           return (
             <g key={row}>
-              {/* Row label */}
+              {/* Left Row label */}
               <text
-                x={rowStartX - 20}
+                x={dimensions.padding / 2}
                 y={rowY + dimensions.seatSize / 2}
-                textAnchor="end"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={dimensions.fontSize}
+                fill="#9ca3af"
+                fontWeight="bold"
+              >
+                {row}
+              </text>
+
+              {/* Right Row label */}
+              <text
+                x={svgWidth - dimensions.padding / 2}
+                y={rowY + dimensions.seatSize / 2}
+                textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize={dimensions.fontSize}
                 fill="#9ca3af"
@@ -108,10 +127,9 @@ const SvgSeatingLayout = ({ seats, selectedSeats, onSeatSelect, onSeatDeselect }
                       seat={seat}
                       size={dimensions.seatSize}
                       isSelected={isSelected}
-                      isLocked={
-                        seat.status === "locked" &&
-                        seat.locked_until?.date &&
-                        new Date(seat.locked_until.date) > new Date()
+                      isClickable={
+                        seat.status === 'available' ||
+                        (seat.status === 'locked' && user && (seat.locked_by === user.id || seat.locked_by === user._id))
                       }
                       onSelect={handleSeatClick}
                       fontSize={dimensions.fontSize}

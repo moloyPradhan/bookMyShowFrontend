@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { loginUser, googleLogin, getMe } from "../api/authApi";
 import authStore from "../store/authStore";
 import AuthLayout from "../layouts/AuthLayout";
@@ -7,6 +7,7 @@ import { GoogleLogin } from "@react-oauth/google";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser, isAuthenticated } = authStore();
   const [formData, setFormData] = useState({
     email: "",
@@ -15,11 +16,13 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const from = location.state?.from || "/";
+
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, from]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,7 +46,7 @@ function LoginPage() {
       await loginUser(formData);
       const userResponse = await getMe();
       setUser(userResponse.data);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
@@ -59,7 +62,7 @@ function LoginPage() {
       await googleLogin(credentialResponse.credential);
       const userResponse = await getMe();
       setUser(userResponse.data);
-      navigate("/");
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {

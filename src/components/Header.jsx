@@ -1,14 +1,30 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 import authStore from "../store/authStore";
 import { logoutUser } from "../api/authApi";
 import toastStore from "../store/toastStore";
 
 function Header({ onMenuToggle }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, user, logout } = authStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { showToast, showConfirm } = toastStore();
+  const userMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideInteraction = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideInteraction);
+    document.addEventListener("focusin", handleOutsideInteraction);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideInteraction);
+      document.removeEventListener("focusin", handleOutsideInteraction);
+    };
+  }, []);
 
   const handleLogout = () => {
     showConfirm(
@@ -52,7 +68,7 @@ function Header({ onMenuToggle }) {
         </div>
 
         {/* Right Section - Auth Actions */}
-        <div className="flex items-center gap-2">
+        <div ref={userMenuRef} className="flex items-center gap-2">
           {isAuthenticated ? (
             <>
               {/* User Menu Toggle */}
@@ -95,9 +111,9 @@ function Header({ onMenuToggle }) {
             </>
           ) : (
             <>
-              {/* Login Button */}
+               {/* Login Button */}
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login", { state: { from: location.pathname } })}
                 className="hidden sm:inline-flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-100 text-zinc-900 rounded-lg transition text-sm font-semibold"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +142,7 @@ function Header({ onMenuToggle }) {
                   <div className="absolute right-0 mt-2 w-40 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg py-2 animate-in fade-in zoom-in-95">
                     <button
                       onClick={() => {
-                        navigate("/login");
+                        navigate("/login", { state: { from: location.pathname } });
                         setShowUserMenu(false);
                       }}
                       className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm text-gray-300 hover:bg-zinc-700 transition"
