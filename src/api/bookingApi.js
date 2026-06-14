@@ -41,3 +41,8 @@ export const fetchBookingDetails = async (bookingId) => {
   const response = await api.get(`/bookings/${bookingId}`);
   return response.data;
 };
+
+export const cancelBooking = async (bookingId) => {
+  const response = await api.post(`/bookings/${bookingId}/cancel`);
+  return response.data;
+};

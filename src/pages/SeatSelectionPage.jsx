@@ -6,6 +6,7 @@ import SvgSeatingLayout from "../components/SvgSeatingLayout";
 import authStore from "../store/authStore";
 import { lockSeats, createBooking, completeBooking } from "../api/bookingApi";
 import MainLayout from "../layouts/MainLayout";
+import toastStore from "../store/toastStore";
 
 import { socket } from "../socket";
 
@@ -16,6 +17,7 @@ function SeatSelectionPage() {
   const [isLocking, setIsLocking] = useState(false);
   const [lockError, setLockError] = useState("");
   const { isAuthenticated } = authStore();
+  const { showToast } = toastStore();
 
   // const { data: seats = [], isLoading, error } = useShowSeats(showId);
 
@@ -99,7 +101,7 @@ function SeatSelectionPage() {
     }
 
     if (selectedSeats.length === 0) {
-      alert("Please select at least one seat");
+      showToast("Please select at least one seat", "warning");
       return;
     }
 
@@ -144,13 +146,14 @@ function SeatSelectionPage() {
             signature: response.razorpay_signature,
           });
 
-          alert("Booking confirmed! Payment successful.");
+          showToast("Booking confirmed! Payment successful.", "success");
           navigate("/bookings");
 
         } catch (err) {
-          alert(
+          showToast(
             "Booking confirmation failed: " +
-            (err.response?.data?.message || err.message)
+            (err.response?.data?.message || err.message),
+            "error"
           );
           navigate("/");
         }

@@ -1,21 +1,50 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import SkeletonLoader from "../components/SkeletonLoader";
-import { fetchBookingDetails } from "../api/bookingApi";
+import { fetchBookingDetails, cancelBooking } from "../api/bookingApi";
 import MainLayout from "../layouts/MainLayout";
+import toastStore from "../store/toastStore";
 
 function BookingDetailsPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const qrCanvasRef = useRef(null);
+  const queryClient = useQueryClient();
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const { showToast, showConfirm } = toastStore();
+
   const { data: response, isLoading, error } = useQuery({
     queryKey: ["booking", bookingId],
     queryFn: () => fetchBookingDetails(bookingId),
   });
 
   const booking = response?.data || null;
+
+  const handleCancelBooking = () => {
+    showConfirm(
+      "Are you sure you want to cancel this booking? This action cannot be undone.",
+      async () => {
+        setIsCancelling(true);
+        setCancelError("");
+
+        try {
+          await cancelBooking(bookingId);
+          showToast("Booking cancelled successfully.", "success");
+          queryClient.invalidateQueries({ queryKey: ["bookings"] });
+          queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
+        } catch (err) {
+          const errMsg = err.response?.data?.message || "Failed to cancel booking. Please try again.";
+          setCancelError(errMsg);
+          showToast(errMsg, "error");
+        } finally {
+          setIsCancelling(false);
+        }
+      }
+    );
+  };
 
   useEffect(() => {
     if (booking && qrCanvasRef.current) {
@@ -522,6 +551,33 @@ function BookingDetailsPage() {
                 </svg>
                 Download Ticket
               </button>
+
+              {booking.status !== "cancelled" && (
+                <button
+                  onClick={handleCancelBooking}
+                  disabled={isCancelling}
+                  className={`w-full py-3 px-4 rounded-xl border border-zinc-700 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 mt-3
+                    ${isCancelling 
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" 
+                      : "bg-transparent text-gray-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50 active:scale-[0.98]"
+                    }`}
+                >
+                  {isCancelling ? (
+                    <span>Cancelling...</span>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>Cancel Booking</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {cancelError && (
+                <p className="text-xs text-red-400 mt-2 text-center">{cancelError}</p>
+              )}
 
               <p className="text-[10px] text-zinc-500 mt-4 text-center leading-normal">
                 Show this ticket and QR code at the screen entry check-in.

@@ -53,7 +53,6 @@ function LoginPage() {
 
 
   const handleGoogleSuccess = async (credentialResponse) => {
-
     setIsLoading(true);
     setError("");
     try {

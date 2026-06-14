@@ -63,15 +63,17 @@ function BookingListPage() {
               <h1 className="text-3xl sm:text-4xl font-bold mb-2">My Bookings</h1>
               <p className="text-gray-400">View and manage all your movie bookings</p>
             </div>
-            <button
-              onClick={() => navigate("/")}
-              className="sm:hidden inline-flex items-center gap-2 bg-white text-zinc-900 hover:bg-gray-100 px-4 py-2 rounded-lg transition text-sm font-semibold w-fit"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Book a Movie
-            </button>
+            {bookings.length > 0 && (
+              <button
+                onClick={() => navigate("/")}
+                className="sm:hidden inline-flex items-center gap-2 bg-white text-zinc-900 hover:bg-gray-100 px-4 py-2 rounded-lg transition text-sm font-semibold w-fit"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Book a Movie
+              </button>
+            )}
           </div>
 
           {bookings.length === 0 ? (

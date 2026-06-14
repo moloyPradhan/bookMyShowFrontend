@@ -2,20 +2,30 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import authStore from "../store/authStore";
 import { logoutUser } from "../api/authApi";
+import toastStore from "../store/toastStore";
 
 function Header({ onMenuToggle }) {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = authStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { showToast, showConfirm } = toastStore();
 
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
-    logout();
-    setShowUserMenu(false);
+  const handleLogout = () => {
+    showConfirm(
+      "Are you sure you want to log out?",
+      async () => {
+        try {
+          await logoutUser();
+          showToast("Logged out successfully.", "success");
+        } catch (err) {
+          console.error("Logout error:", err);
+          showToast("Failed to log out. Please try again.", "error");
+        }
+        logout();
+        setShowUserMenu(false);
+        navigate("/");
+      }
+    );
   };
 
   return (

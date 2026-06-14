@@ -12,6 +12,7 @@ import RegisterPage from "./pages/RegisterPage";
 import BookingListPage from "./pages/BookingListPage";
 import BookingDetailsPage from "./pages/BookingDetailsPage";
 import authStore from "./store/authStore";
+import ToastContainer from "./components/ToastContainer";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
+      <ToastContainer />
     </QueryClientProvider>
   );
 }
