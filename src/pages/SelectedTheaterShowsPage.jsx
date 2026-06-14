@@ -4,6 +4,7 @@ import { useShowsByMovie } from "../utils/useShowsByMovie";
 import { useMemo, useState, useEffect } from "react";
 import SkeletonLoader from "../components/SkeletonLoader";
 import MainLayout from "../layouts/MainLayout";
+import { formatDuration } from "../utils/formatUtils";
 
 function SelectedTheaterShowsPage() {
   const { movieId, theaterId } = useParams();
@@ -436,11 +437,12 @@ function SelectedTheaterShowsPage() {
                         <div className="text-right">
                           <span className="block text-[10px] text-zinc-600 uppercase font-bold">Duration</span>
                           <span className="text-zinc-300">
-                            {Math.round(
-                              (new Date(show.end_time.date) - new Date(show.start_time.date)) /
-                              (1000 * 60)
-                            )}{" "}
-                            mins
+                            {formatDuration(
+                              Math.round(
+                                (new Date(show.end_time.date) - new Date(show.start_time.date)) /
+                                (1000 * 60)
+                              )
+                            )}
                           </span>
                         </div>
                       </div>

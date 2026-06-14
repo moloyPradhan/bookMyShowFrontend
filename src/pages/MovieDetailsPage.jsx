@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useMovies } from "../utils/useMovies";
+import { formatDuration } from "../utils/formatUtils";
 import SkeletonLoader from "../components/SkeletonLoader";
 import MainLayout from "../layouts/MainLayout";
 
@@ -131,7 +132,7 @@ function MovieDetailsPage() {
                 {movie.genre}
               </span>
               <span className="bg-zinc-700 px-2 py-1 rounded">
-                {movie.duration_minutes} min
+                {formatDuration(movie.duration_minutes)}
               </span>
             </div>
 

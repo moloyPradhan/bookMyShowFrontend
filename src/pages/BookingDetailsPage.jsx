@@ -7,6 +7,7 @@ import { fetchBookingDetails, cancelBooking } from "../api/bookingApi";
 import MainLayout from "../layouts/MainLayout";
 import toastStore from "../store/toastStore";
 import authStore from "../store/authStore";
+import { formatDuration } from "../utils/formatUtils";
 
 function BookingDetailsPage() {
   const { bookingId } = useParams();
@@ -441,7 +442,7 @@ function BookingDetailsPage() {
                 <div>
                   <p className="text-gray-500 text-sm mb-1">Duration</p>
                   <p className="text-lg font-semibold">
-                    {booking.duration_minutes} mins
+                    {formatDuration(booking.duration_minutes)}
                   </p>
                 </div>
               </div>
